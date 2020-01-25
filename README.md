@@ -5,23 +5,35 @@
 
 **KBool** is a simple kotlin library providing a transparent boolean algebra.
 
+The reason for the development of this library was an application that was too complex 
+to understand at any time why some actions were not executable at a time.
+
+So the question was:
+
+Wouldn't it be nice if you just implement the conditions for disabling the buttons as usual and something would automatically return the resulting boolean value including the responsible subconditions. 
+A tooltip for disabled buttons would then explain the reason for the missing functionality.
+
+Basically, one is always looking for the answer to the question: Which part of a condition is currently not fulfilled?
+
+This is what **KBool** tries to reach.
+
 ### Code example
+```kotlin
+val sunIsShining = true.asBool("sun is shinig?")
+val isRaining = false.asBool().named("is raining?")
+val haveUmbrella = true.asBool("have umbrella?")
+
+val walkingInTheWood = sunIsShining and (!isRaining or haveUmbrella)
+
+println(walkingInTheWood.isTrue())   // -> true, but why?
+println(walkingInTheWood.getCause()) // -> sun is shining? - true, is raining - false
+                                     //    so an umbrella doesn't change a thing today ;-)
 ```
-val sunIsShining = true.asBool()
-println(sunIsShining.isTrue()) // -> true
 
-val isRaining = false.asBool().named("isRaining")
-println(!isRaining.booleanValue()) // -> true
+And even if you are **not** using the cause in your application, 
+the debugger shows it. :blush:
 
-val haveUmbrella = true.asBool("haveUmbrella")
-
-val walkingInTheWood = sunIsShining.named("sunIsShining") 
-        and (!isRaining or haveUmbrella)
-
-println(walkingInTheWood.isTrue()) // -> true, but why?
-println(walkingInTheWood.getCause()) // -> sunIsShining - true, isRaining - false
-                                     //    so an umbrella doesn't change actually a thing ;-)
-```
+![Screenshot from Debugger](doc/debugger.jpg)
 
 ## Latest Stable Release
 
@@ -43,7 +55,7 @@ println(walkingInTheWood.getCause()) // -> sunIsShining - true, isRaining - fals
   <dependency>
     <groupId>de.xeroli.kbool</groupId>
     <artifactId>kbool</artifactId>
-    <version>0.1.0</version>
+    <version>0.3.0</version>
   </dependency>
 </dependencies>
 ...
@@ -56,7 +68,7 @@ repositories {
 }
 
 dependencies {
-  compile('de.xeroli.kbool:kbool:0.1.0')
+  compile('de.xeroli.kbool:kbool:0.3.0')
 }
 ```
 
@@ -71,6 +83,7 @@ to your build.
 You can also reference a specific snapshot like `0.2.0-20200125.081709-1`. 
 Here's the [list of snapshot versions](https://oss.jfrog.org/webapp/#/artifacts/browse/tree/General/oss-snapshot-local/de/xeroli/kbool/kbool).
 
+The sourcecode of snapshots are in the branch named ['snapshot'](https://github.com/xeroli/kbool/tree/snapshot).
 #### Maven
 ```xml
 ...
@@ -85,7 +98,7 @@ Here's the [list of snapshot versions](https://oss.jfrog.org/webapp/#/artifacts/
   <dependency>
     <groupId>de.xeroli.kbool</groupId>
     <artifactId>kbool</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
   </dependency>
 </dependencies>
 ...
@@ -98,7 +111,7 @@ repositories {
 }
 
 dependencies {
-  compile('de.xeroli.kbool:kbool:0.2.0-SNAPSHOT')
+  compile('de.xeroli.kbool:kbool:0.4.0-SNAPSHOT')
 }
 ```
 
