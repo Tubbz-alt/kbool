@@ -3,15 +3,19 @@ package de.xeroli.kbool
 import java.lang.IllegalArgumentException
 import kotlin.streams.asSequence
 
-open class Bool private constructor(protected val type: Type, protected var name: String = "") {
+/**
+ * Bool - a simple class providing a transparent boolean algebra
+ * for usage see https://github.com/xeroli/kbool
+ */
+open class Bool private constructor(internal val type: Type, internal var name: String = "") {
 
-    enum class Type { BOOLEAN, SUPPLIER, AND, OR, NOT, XOR }
+    internal enum class Type { BOOLEAN, SUPPLIER, AND, OR, NOT, XOR }
 
-    protected var value = false
-    protected var evaluated = false
-    protected val entries = mutableSetOf<Entry>()
+    internal var value = false
+    internal var evaluated = false
+    internal val entries = mutableSetOf<Entry>()
 
-    protected data class Entry(val key: String, val value: Boolean) {
+    internal data class Entry(val key: String, val value: Boolean) {
         override fun toString(): String {
             return "Entry('$key': $value)"
         }
@@ -66,7 +70,7 @@ open class Bool private constructor(protected val type: Type, protected var name
 
     }
 
-    class BinaryBool(type: Type, private val left: Bool, private val right: Bool) : Bool(type, "") {
+    class BinaryBool internal constructor(type: Type, private val left: Bool, private val right: Bool) : Bool(type, "") {
         private fun copyFrom(other: Bool) {
             this.value = other.value
             this.entries.clear()
@@ -135,14 +139,33 @@ open class Bool private constructor(protected val type: Type, protected var name
         this.evaluated = true
     }
 
+    /**
+     * booleanValue()
+     * returns the booleanValuu of the evaluated Bool.
+     * If the Bool isn't evaluated yet, the evaluation ist forced.
+     */
     fun booleanValue(): Boolean {
         this.evaluate()
         return this.value
     }
 
+    /**
+     * isTrue()
+     * returns true if booleanValue() returns true
+     */
     fun isTrue() = this.booleanValue()
+
+    /**
+     * isFalse()
+     * returns true if booleanValue() returns false
+     */
     fun isFalse() = !this.booleanValue()
 
+    /**
+     * getCause()
+     * returns the cause of an evaluated Bool as String. If the Bool isn't ebvaluated yet, evaluation is forced.
+     * The parameters may change in the near future ....
+     */
     fun getCause(separator: String = ", ", prefix: String = "", postfix: String = "", translator: (String) -> String = { s -> s }): String {
         this.evaluate()
         return this.entries.stream().map {
@@ -150,6 +173,10 @@ open class Bool private constructor(protected val type: Type, protected var name
         }.asSequence().joinToString(separator, prefix, postfix)
     }
 
+    /**
+     * named()
+     * set the name of this boolean, overwrites an existing name without warning
+     */
     fun named(newName: String): Bool {
         if (newName.isNotBlank() and this.evaluated) {
             this.entries.clear()
@@ -167,7 +194,7 @@ open class Bool private constructor(protected val type: Type, protected var name
         this.evaluated = true
     }
 
-    protected open fun evaluate() {
+    internal open fun evaluate() {
         if (!evaluated) {
             when (type) {
                 Type.BOOLEAN -> evaluateBool()
@@ -176,6 +203,11 @@ open class Bool private constructor(protected val type: Type, protected var name
         }
     }
 
+    /**
+     * and()
+     * returns a Bool representing the value of (left and right)
+     * if evaluation is possible, an evaluated Bool will be returned
+     */
     infix fun and(other: Bool): Bool {
         if (this.evaluated) {
             if (this.isFalse())
@@ -195,6 +227,11 @@ open class Bool private constructor(protected val type: Type, protected var name
         }
     }
 
+    /**
+     * or()
+     * returns a Bool representing the value of (left or right)
+     * if evaluation is possible, an evaluated Bool will be returned
+     */
     infix fun or(other: Bool): Bool {
         if (this.evaluated) {
             if (this.isTrue())
@@ -213,6 +250,12 @@ open class Bool private constructor(protected val type: Type, protected var name
         }
     }
 
+    /**
+     * not()
+     * returns the negation of the Bool.
+     * if it was evaluated, the resultin Bool ist evaluated too.
+     * if not, a new not-evaluated Bool will be returned
+     */
     operator fun not(): Bool {
         if (this.evaluated) {
             return Bool("", this.isFalse(), this.entries)
@@ -220,12 +263,21 @@ open class Bool private constructor(protected val type: Type, protected var name
         return NotBool(this)
     }
 
+    /**
+     * toString()
+     * produces an unique value for Bool instances, that are not evaluated.
+     * As soon as a Bool ist evaluated, only value and cause are relevant.
+     */
     override fun toString(): String {
         if (this.evaluated)
             return "EvaluatedBool(name=$name, value=$value, entries=$entries)"
         return "$type(name=$name)"
     }
 
+    /**
+     * equals()
+     * two Bool instances are equal, ist their String respresentation ist equal
+     */
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -236,12 +288,15 @@ open class Bool private constructor(protected val type: Type, protected var name
         return true
     }
 
+    /**
+     * hashCode()
+     * returns a modified hashCode of the result of toString()
+     */
     override fun hashCode(): Int {
         var result = type.hashCode()
         result = 31 * result + toString().hashCode()
         return result
     }
-
 }
 
 fun Boolean.asBool(name: String ="") = Bool.SupplierBool(this).named(name)
