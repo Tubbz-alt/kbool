@@ -5,11 +5,11 @@ import kotlin.streams.asSequence
 
 open class Bool private constructor(protected val type: Type, protected var name: String = "") {
 
-    enum class Type { BOOLEAN, BOOL, SUPPLIER, AND, OR, NOT, XOR }
+    enum class Type { BOOLEAN, SUPPLIER, AND, OR, NOT, XOR }
 
-    protected var value: Boolean = false
-    protected var evaluated: Boolean = false;
-    protected val entries: MutableSet<Entry> = mutableSetOf<Entry>()
+    protected var value = false
+    protected var evaluated = false
+    protected val entries = mutableSetOf<Entry>()
 
     protected data class Entry(val key: String, val value: Boolean) {
         override fun toString(): String {
@@ -17,9 +17,9 @@ open class Bool private constructor(protected val type: Type, protected var name
         }
     }
 
-    class SupplierBool(val boolSupplier: () -> Bool, name: String = "") : Bool(Type.SUPPLIER, name) {
+    class SupplierBool(val boolSupplier: () -> Bool) : Bool(Type.SUPPLIER, "") {
 
-        constructor(bool: Boolean, name: String = "") : this({ Bool(bool, name) }, name)
+        constructor(bool: Boolean) : this({ Bool("", bool) })
 
         override fun evaluate() {
             val innerBool = this.boolSupplier().named(this.name)
@@ -35,9 +35,16 @@ open class Bool private constructor(protected val type: Type, protected var name
             }
             this.evaluated = true
         }
+
+        override fun toString(): String {
+            if (this.evaluated)
+                return super.toString()
+            return "$type(name=$name, supplierHash=#${boolSupplier.hashCode()})"
+        }
+
     }
 
-    class NotBool(val inner: Bool) : Bool(Type.NOT) {
+    class NotBool(private val inner: Bool) : Bool(Type.NOT, "") {
 
         override fun evaluate() {
             inner.evaluate()
@@ -51,9 +58,15 @@ open class Bool private constructor(protected val type: Type, protected var name
             this.evaluated = true
         }
 
+        override fun toString(): String {
+            if (this.evaluated)
+                return super.toString()
+            return "$type(name=$name, $inner)"
+        }
+
     }
 
-    class BinaryBool(type: Type, val left: Bool, val right: Bool) : Bool(type) {
+    class BinaryBool(type: Type, private val left: Bool, private val right: Bool) : Bool(type, "") {
         private fun copyFrom(other: Bool) {
             this.value = other.value
             this.entries.clear()
@@ -104,15 +117,21 @@ open class Bool private constructor(protected val type: Type, protected var name
             this.evaluated = true
         }
 
+        override fun toString(): String {
+            if (this.evaluated)
+                return super.toString()
+            return "$type(name=$name, left=$left, right=$right)"
+        }
+
     }
 
-    private constructor(bool: Boolean, name: String) : this(Type.BOOLEAN, name) {
+    internal constructor(name: String, bool: Boolean) : this(Type.BOOLEAN, name) {
         this.value = bool
     }
 
-    private constructor(value: Boolean, entries: Set<Entry>, name: String) : this(Type.BOOLEAN, name) {
+    private constructor(name: String, value: Boolean, entries: Set<Entry>) : this(Type.BOOLEAN, name) {
         this.entries.addAll(entries)
-        this.value = value;
+        this.value = value
         this.evaluated = true
     }
 
@@ -151,7 +170,7 @@ open class Bool private constructor(protected val type: Type, protected var name
     protected open fun evaluate() {
         if (!evaluated) {
             when (type) {
-                Type.BOOL, Type.BOOLEAN -> evaluateBool()
+                Type.BOOLEAN -> evaluateBool()
                 else -> throw IllegalArgumentException("$type is not supported")
             }
         }
@@ -166,13 +185,13 @@ open class Bool private constructor(protected val type: Type, protected var name
                     return other
             }
         }
-        if (this.evaluated && other.evaluated) {
+        return if (this.evaluated && other.evaluated) {
             val entries = this.entries
             entries.addAll(other.entries)
-            return Bool(true, entries, "${this.name} and ${other.name}")
+            Bool("", true, entries)
         } else {
             val result: Bool = BinaryBool(Type.AND, this, other)
-            return result
+            result
         }
     }
 
@@ -185,26 +204,44 @@ open class Bool private constructor(protected val type: Type, protected var name
                     return other
             }
         }
-        if (this.evaluated && other.evaluated) {
-            var entries = this.entries
+        return if (this.evaluated && other.evaluated) {
+            val entries = this.entries
             entries.addAll(other.entries)
-            return Bool(false, entries, "${this.name} or ${other.name}")
+            Bool("", false, entries)
         } else {
-            val result: Bool = BinaryBool(Type.OR, this, other)
-            return result
+            BinaryBool(Type.OR, this, other)
         }
     }
 
     operator fun not(): Bool {
         if (this.evaluated) {
-            return Bool(this.isFalse(), this.entries, "!${this.name}")
+            return Bool("", this.isFalse(), this.entries)
         }
         return NotBool(this)
     }
 
     override fun toString(): String {
-        return "Bool(name=$name, type=$type, value=$value, evaluated=$evaluated, setOfEntries=$entries)"
+        if (this.evaluated)
+            return "EvaluatedBool(name=$name, value=$value, entries=$entries)"
+        return "$type(name=$name)"
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Bool
+        if (toString() != other.toString()) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = type.hashCode()
+        result = 31 * result + toString().hashCode()
+        return result
+    }
+
 }
 
-fun Boolean.asBool(name: String = "") = Bool.SupplierBool(this, name)
+fun Boolean.asBool(name: String ="") = Bool.SupplierBool(this).named(name)

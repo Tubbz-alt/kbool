@@ -43,7 +43,7 @@ println(walkingInTheWood.getCause()) // -> sunIsShining - true, isRaining - fals
   <dependency>
     <groupId>de.xeroli.kbool</groupId>
     <artifactId>kbool</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
   </dependency>
 </dependencies>
 ...
@@ -56,7 +56,7 @@ repositories {
 }
 
 dependencies {
-  compile('de.xeroli.kbool:kbool:0.1.0')
+  compile('de.xeroli.kbool:kbool:0.2.0')
 }
 ```
 
@@ -85,7 +85,7 @@ Here's the [list of snapshot versions](https://oss.jfrog.org/webapp/#/artifacts/
   <dependency>
     <groupId>de.xeroli.kbool</groupId>
     <artifactId>kbool</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.3.0-SNAPSHOT</version>
   </dependency>
 </dependencies>
 ...
@@ -98,7 +98,7 @@ repositories {
 }
 
 dependencies {
-  compile('de.xeroli.kbool:kbool:0.2.0-SNAPSHOT')
+  compile('de.xeroli.kbool:kbool:0.3.0-SNAPSHOT')
 }
 ```
 
