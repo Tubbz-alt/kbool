@@ -1,6 +1,6 @@
 # KBool
 
-[![Build Status](https://travis-ci.org/xeroli/kbool.svg?branch=master)](https://travis-ci.org/xeroli/kbool) [![Apache License](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![Build Status](https://travis-ci.com/xeroli/kbool.svg?branch=master)](https://travis-ci.com/xeroli/kbool) [![Apache License](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 ## Summary
 
 **KBool** is a simple kotlin library providing a transparent boolean algebra.
@@ -28,6 +28,21 @@ val walkingInTheWood = sunIsShining and (!isRaining or haveUmbrella)
 println(walkingInTheWood.isTrue())   // -> true, but why?
 println(walkingInTheWood.getCause()) // -> sun is shining? - true, is raining - false
                                      //    so an umbrella doesn't change a thing today ;-)
+```
+
+To enable a short-circuit evaluation, calculated Booleans  must be specified as supplying lambdas:
+
+```kotlin
+var a: String? = null
+var notNull = Bool.of{a != null}.named("String is not null")
+var longEnough = Bool.of{ (a!!.length > 7) }.named("String has at least 7 characters")
+                                             // not using a lambda would result in a NPE
+
+println((notNull and longEnough).booleanValue()) // -> false because of a is null
+
+a = "Hallo Welt!"
+println((notNull and longEnough).getCause()) // String is not null - true, String has at least 7 characters - true
+
 ```
 
 And even if you are **not** using the cause in your application, 

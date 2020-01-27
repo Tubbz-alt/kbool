@@ -2,8 +2,10 @@
 
 ## 0.4.0 (snapshot)
 
+Improvements:
+ -  simplified supplier handling with Bool.of{Boolean}
+ 
 ToDos:
- - simplify supplier handling
  - improve api of getCause()
  
 ## 0.3.0

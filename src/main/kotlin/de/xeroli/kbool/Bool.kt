@@ -21,7 +21,18 @@ open class Bool private constructor(internal val type: Type, internal var name: 
         }
     }
 
-    class SupplierBool(val boolSupplier: () -> Bool) : Bool(Type.SUPPLIER, "") {
+    companion object Factory {
+        fun of(supplier: () -> Boolean): Bool {
+            return SupplierBool { SupplierBool(supplier.invoke()) }
+        }
+
+        fun of(bool: Boolean): Bool {
+            return bool.asBool()
+        }
+
+    }
+
+    internal class SupplierBool(val boolSupplier: () -> Bool) : Bool(Type.SUPPLIER, "") {
 
         constructor(bool: Boolean) : this({ Bool("", bool) })
 
@@ -48,7 +59,7 @@ open class Bool private constructor(internal val type: Type, internal var name: 
 
     }
 
-    class NotBool(private val inner: Bool) : Bool(Type.NOT, "") {
+    internal class NotBool(private val inner: Bool) : Bool(Type.NOT, "") {
 
         override fun evaluate() {
             inner.evaluate()
@@ -70,7 +81,7 @@ open class Bool private constructor(internal val type: Type, internal var name: 
 
     }
 
-    class BinaryBool internal constructor(type: Type, private val left: Bool, private val right: Bool) : Bool(type, "") {
+    internal class BinaryBool internal constructor(type: Type, private val left: Bool, private val right: Bool) : Bool(type, "") {
         private fun copyFrom(other: Bool) {
             this.value = other.value
             this.entries.clear()
@@ -299,4 +310,4 @@ open class Bool private constructor(internal val type: Type, internal var name: 
     }
 }
 
-fun Boolean.asBool(name: String ="") = Bool.SupplierBool(this).named(name)
+fun Boolean.asBool(name: String = "") = Bool.SupplierBool(this).named(name)
