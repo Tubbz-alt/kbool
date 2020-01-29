@@ -1,6 +1,6 @@
 # KBool
 
-[![Build Status](https://travis-ci.org/xeroli/kbool.svg?branch=master)](https://travis-ci.org/xeroli/kbool) [![Apache License](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![Build Status](https://travis-ci.com/xeroli/kbool.svg?branch=master)](https://travis-ci.com/xeroli/kbool) [![Apache License](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 ## Summary
 
 **KBool** is a simple kotlin library providing a transparent boolean algebra.
@@ -30,6 +30,20 @@ println(walkingInTheWood.getCause()) // -> sun is shining? - true, is raining - 
                                      //    so an umbrella doesn't change a thing today ;-)
 ```
 
+To enable a short-circuit evaluation, calculated Booleans  must be specified as supplying lambdas:
+
+```kotlin
+var a: String? = null
+var notNull = Bool.of{a != null}.named("String is not null")
+var longEnough = Bool.of{ (a!!.length > 7) }.named("String has at least 7 characters")
+                                             // not using a lambda would result in a NPE
+
+println((notNull and longEnough).booleanValue()) // -> false because of a is null
+
+a = "Hallo Welt!"
+println((notNull and longEnough).getCause()) // String is not null - true, String has at least 7 characters - true
+```
+
 And even if you are **not** using the cause in your application, 
 the debugger shows it. :blush:
 
@@ -55,7 +69,7 @@ the debugger shows it. :blush:
   <dependency>
     <groupId>de.xeroli.kbool</groupId>
     <artifactId>kbool</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
   </dependency>
 </dependencies>
 ...
@@ -68,7 +82,7 @@ repositories {
 }
 
 dependencies {
-  compile('de.xeroli.kbool:kbool:0.3.0')
+  compile('de.xeroli.kbool:kbool:0.4.0')
 }
 ```
 
@@ -98,7 +112,7 @@ The sourcecode of snapshots are in the branch named ['snapshot'](https://github.
   <dependency>
     <groupId>de.xeroli.kbool</groupId>
     <artifactId>kbool</artifactId>
-    <version>0.4.0-SNAPSHOT</version>
+    <version>0.5.0-SNAPSHOT</version>
   </dependency>
 </dependencies>
 ...
@@ -111,7 +125,7 @@ repositories {
 }
 
 dependencies {
-  compile('de.xeroli.kbool:kbool:0.4.0-SNAPSHOT')
+  compile('de.xeroli.kbool:kbool:0.5.0-SNAPSHOT')
 }
 ```
 

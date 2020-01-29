@@ -1,10 +1,14 @@
 # CHANGELOG
 
-## 0.4.0 (snapshot)
+## 0.5.0 (snapshot)
 
 ToDos:
- - simplify supplier handling
  - improve api of getCause()
+ 
+ ## 0.4.0
+
+Improvements:
+ -  simplified supplier handling with Bool.of{Boolean}
  
 ## 0.3.0
 
