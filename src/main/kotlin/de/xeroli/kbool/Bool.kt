@@ -1,25 +1,32 @@
+/*
+ * Copyright 2020 Roland Fischer (fischer@xeroli.de)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
 package de.xeroli.kbool
 
-import java.lang.IllegalArgumentException
+import kotlin.IllegalArgumentException
 import kotlin.streams.asSequence
 
 /**
  * Bool - a simple class providing a transparent boolean algebra
  * for usage see https://github.com/xeroli/kbool
  */
-open class Bool private constructor(internal val type: Type, internal var name: String = "") {
+abstract class Bool private constructor(internal val type: Type) {
 
     internal enum class Type { BOOLEAN, SUPPLIER, AND, OR, NOT, XOR }
 
-    internal var value = false
-    internal var evaluated = false
-    internal val entries = mutableSetOf<Entry>()
-
-    internal data class Entry(val key: String, val value: Boolean) {
-        override fun toString(): String {
-            return "Entry('$key': $value)"
-        }
-    }
+    internal var name: String = ""
 
     companion object Factory {
         fun of(supplier: () -> Boolean): Bool {
@@ -27,127 +34,105 @@ open class Bool private constructor(internal val type: Type, internal var name: 
         }
 
         fun of(bool: Boolean): Bool {
-            return bool.asBool()
+            return EvaluatedBool(bool)
         }
-
     }
 
-    internal class SupplierBool(val boolSupplier: () -> Bool) : Bool(Type.SUPPLIER, "") {
+    internal class EvaluatedBool(internal var value: Boolean, internal val entries: MutableSet<Entry> = mutableSetOf<Entry>(Entry(value.toString().toUpperCase(), value))) : Bool(Type.BOOLEAN) {
 
-        constructor(bool: Boolean) : this({ Bool("", bool) })
+        data class Entry(val key: String, val value: Boolean) {
+            override fun toString(): String {
+                return "Entry('$key': $value)"
+            }
+        }
 
-        override fun evaluate() {
-            val innerBool = this.boolSupplier().named(this.name)
-            innerBool.evaluate()
-            this.value = innerBool.value
-            if (this.name.isBlank())
-                this.name = innerBool.name
-            this.entries.clear()
+        override  fun evaluate(): EvaluatedBool {
+            return this
+        }
+
+        override fun toString(): String {
+            return "$type(name='$name', value=$value, entries=$entries)"
+        }
+    }
+
+    internal class SupplierBool(private val boolSupplier: () -> Bool) : Bool(Type.SUPPLIER) {
+
+        constructor(bool: Boolean) : this({ EvaluatedBool(bool) })
+
+        override fun evaluate(): EvaluatedBool {
+            val innerBool = this.boolSupplier().evaluate()
             if (this.name.isNotBlank()) {
-                this.entries.add(Entry(name, this.value))
-            } else {
-                this.entries.addAll(innerBool.entries)
+                innerBool.named(this.name)
             }
-            this.evaluated = true
+            return innerBool
         }
 
         override fun toString(): String {
-            if (this.evaluated)
-                return super.toString()
-            return "$type(name=$name, supplierHash=#${boolSupplier.hashCode()})"
+            return "$type(name='$name', supplierHash=#${boolSupplier.hashCode()})"
         }
 
     }
 
-    internal class NotBool(private val inner: Bool) : Bool(Type.NOT, "") {
+    internal class NotBool(private val inner: Bool) : Bool(Type.NOT) {
 
-        override fun evaluate() {
-            inner.evaluate()
-            this.value = !inner.value
-            this.entries.clear()
-            if (this.name.isBlank()) {
-                this.entries.addAll(inner.entries)
-            } else {
-                this.entries.add(Entry(this.name, this.value))
+        override fun evaluate(): EvaluatedBool {
+            val innerBool = this.inner.evaluate()
+            innerBool.value = !innerBool.value
+
+            if (this.name.isNotBlank()) {
+                innerBool.named(this.name)
             }
-            this.evaluated = true
+            return innerBool
         }
 
         override fun toString(): String {
-            if (this.evaluated)
-                return super.toString()
             return "$type(name=$name, $inner)"
         }
 
     }
 
-    internal class BinaryBool internal constructor(type: Type, private val left: Bool, private val right: Bool) : Bool(type, "") {
-        private fun copyFrom(other: Bool) {
-            this.value = other.value
-            this.entries.clear()
-            if (this.name.isBlank()) {
-                this.entries.addAll(other.entries)
-            } else {
-                this.entries.add(Entry(this.name, this.value))
+    internal class BinaryBool internal constructor(type: Type, private val left: Bool, private val right: Bool) : Bool(type) {
+
+        private fun rename(other: EvaluatedBool): EvaluatedBool {
+            if (this.name.isNotBlank()) {
+                other.named(this.name)
             }
-            this.evaluated = true
+            return other
         }
 
-        override fun evaluate() {
-            left.evaluate()
+        override fun evaluate(): EvaluatedBool {
+            val innerLeft = left.evaluate()
             when (type) {
-                Type.AND -> if (!left.value) {
-                    copyFrom(left); return
-                }
-                Type.OR -> if (left.value) {
-                    copyFrom(left); return
-                }
+                Type.AND -> if (!innerLeft.value) return rename(innerLeft)
+                Type.OR -> if (innerLeft.value) return rename(innerLeft)
                 else -> {
                 }
             }
-            right.evaluate()
+            val innerRight = right.evaluate()
             when (type) {
-                Type.AND -> if (!right.value) {
-                    copyFrom(right); return
-                }
-                Type.OR -> if (right.value) {
-                    copyFrom(right); return
-                }
+                Type.AND -> if (!innerRight.value) return rename(innerRight)
+                Type.OR -> if (innerRight.value) return rename(innerRight)
                 else -> {
                 }
             }
-            this.value = when (type) {
-                Type.AND -> left.value and right.value
-                Type.OR -> left.value or right.value
-                Type.XOR -> left.value xor right.value
-                else -> false
+            val innerValue = when (type) {
+                Type.AND -> innerLeft.value and innerRight.value
+                Type.OR -> innerLeft.value or innerRight.value
+                Type.XOR -> innerLeft.value xor innerRight.value
+                else -> throw IllegalArgumentException("unknown type")
             }
-            this.entries.clear()
+            val innerEntries = mutableSetOf<EvaluatedBool.Entry>()
             if (this.name.isBlank()) {
-                this.entries.addAll(left.entries)
-                this.entries.addAll(right.entries)
-            } else {
-                this.entries.add(Entry(this.name, this.value))
+                innerEntries.addAll(innerLeft.entries)
+                innerEntries.addAll(innerRight.entries)
             }
-            this.evaluated = true
+            return rename(EvaluatedBool(innerValue, innerEntries))
         }
 
         override fun toString(): String {
-            if (this.evaluated)
-                return super.toString()
-            return "$type(name=$name, left=$left, right=$right)"
+            return "$type(name='$name', left=$left, right=$right)"
         }
 
-    }
-
-    internal constructor(name: String, bool: Boolean) : this(Type.BOOLEAN, name) {
-        this.value = bool
-    }
-
-    private constructor(name: String, value: Boolean, entries: Set<Entry>) : this(Type.BOOLEAN, name) {
-        this.entries.addAll(entries)
-        this.value = value
-        this.evaluated = true
     }
 
     /**
@@ -156,8 +141,7 @@ open class Bool private constructor(internal val type: Type, internal var name: 
      * If the Bool isn't evaluated yet, the evaluation ist forced.
      */
     fun booleanValue(): Boolean {
-        this.evaluate()
-        return this.value
+        return this.evaluate().value
     }
 
     /**
@@ -178,8 +162,7 @@ open class Bool private constructor(internal val type: Type, internal var name: 
      * The parameters may change in the near future ....
      */
     fun getCause(separator: String = ", ", prefix: String = "", postfix: String = "", translator: (String) -> String = { s -> s }): String {
-        this.evaluate()
-        return this.entries.stream().map {
+        return this.evaluate().entries.stream().map {
             "${translator.invoke(it.key)} - ${translator.invoke(it.value.toString())}"
         }.asSequence().joinToString(separator, prefix, postfix)
     }
@@ -189,30 +172,22 @@ open class Bool private constructor(internal val type: Type, internal var name: 
      * set the name of this boolean, overwrites an existing name without warning
      */
     fun named(newName: String): Bool {
-        if (newName.isNotBlank() and this.evaluated) {
-            this.entries.clear()
-            this.entries.add(Entry(newName, this.value))
+        if (newName.isNotBlank()) {
+            if (this is EvaluatedBool) {
+                this.entries.clear()
+                this.entries.add(EvaluatedBool.Entry(newName, this.value))
+            }
         }
         this.name = newName
         return this
     }
 
-    private fun evaluateBool() {
-        if (this.name.isNotBlank()) {
-            this.entries.clear()
-            this.entries.add(Entry(name, this.value))
-        }
-        this.evaluated = true
-    }
+    internal abstract fun evaluate(): EvaluatedBool
 
-    internal open fun evaluate() {
-        if (!evaluated) {
-            when (type) {
-                Type.BOOLEAN -> evaluateBool()
-                else -> throw IllegalArgumentException("$type is not supported")
-            }
-        }
-    }
+    /**
+     * evaluated() - provides an immutable evaluated Bool
+     */
+    fun evaluated(): Bool = evaluate()
 
     /**
      * and()
@@ -220,21 +195,21 @@ open class Bool private constructor(internal val type: Type, internal var name: 
      * if evaluation is possible, an evaluated Bool will be returned
      */
     infix fun and(other: Bool): Bool {
-        if (this.evaluated) {
+        if (this.type == Type.BOOLEAN) {
             if (this.isFalse())
                 return this
-            if (other.evaluated) {
+            if (other.type == Type.BOOLEAN) {
                 if (other.isFalse())
                     return other
             }
         }
-        return if (this.evaluated && other.evaluated) {
-            val entries = this.entries
-            entries.addAll(other.entries)
-            Bool("", true, entries)
+        return if (this is EvaluatedBool && other is EvaluatedBool) {
+            val combinedEntries = mutableSetOf<EvaluatedBool.Entry>()
+            combinedEntries.addAll( this.entries)
+            combinedEntries.addAll(other.entries)
+            EvaluatedBool(true, combinedEntries)
         } else {
-            val result: Bool = BinaryBool(Type.AND, this, other)
-            result
+            BinaryBool(Type.AND, this, other)
         }
     }
 
@@ -244,18 +219,19 @@ open class Bool private constructor(internal val type: Type, internal var name: 
      * if evaluation is possible, an evaluated Bool will be returned
      */
     infix fun or(other: Bool): Bool {
-        if (this.evaluated) {
+        if (this.type == Type.BOOLEAN) {
             if (this.isTrue())
                 return this
-            if (other.evaluated) {
+            if (other.type == Type.BOOLEAN) {
                 if (other.isTrue())
                     return other
             }
         }
-        return if (this.evaluated && other.evaluated) {
-            val entries = this.entries
-            entries.addAll(other.entries)
-            Bool("", false, entries)
+        return if (this is EvaluatedBool && other is EvaluatedBool) {
+            val combinedEntries = mutableSetOf<EvaluatedBool.Entry>()
+            combinedEntries.addAll( this.entries)
+            combinedEntries.addAll(other.entries)
+            EvaluatedBool( false, combinedEntries)
         } else {
             BinaryBool(Type.OR, this, other)
         }
@@ -268,8 +244,8 @@ open class Bool private constructor(internal val type: Type, internal var name: 
      * if not, a new not-evaluated Bool will be returned
      */
     operator fun not(): Bool {
-        if (this.evaluated) {
-            return Bool("", this.isFalse(), this.entries)
+        if (this is EvaluatedBool) {
+            return EvaluatedBool(this.isFalse(), this.entries)
         }
         return NotBool(this)
     }
@@ -280,9 +256,7 @@ open class Bool private constructor(internal val type: Type, internal var name: 
      * As soon as a Bool ist evaluated, only value and cause are relevant.
      */
     override fun toString(): String {
-        if (this.evaluated)
-            return "EvaluatedBool(name=$name, value=$value, entries=$entries)"
-        return "$type(name=$name)"
+        return "$type(name='$name')"
     }
 
     /**
@@ -310,4 +284,4 @@ open class Bool private constructor(internal val type: Type, internal var name: 
     }
 }
 
-fun Boolean.asBool(name: String = "") = Bool.SupplierBool(this).named(name)
+fun Boolean.asBool(name: String = ""): Bool = Bool.EvaluatedBool(this).named(name)

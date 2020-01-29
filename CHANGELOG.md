@@ -2,6 +2,9 @@
 
 ## 0.5.0 (snapshot)
 
+Improvements:
+ -  cleaner codebase, more unittests
+ 
 ToDos:
  - improve api of getCause()
  

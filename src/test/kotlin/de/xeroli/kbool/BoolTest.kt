@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 Roland Fischer (fischer@xeroli.de)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
 package de.xeroli.kbool
 
 import kotlin.test.Test
@@ -9,8 +24,8 @@ class BoolTest {
     @Test
     fun testSupplier() {
         var a: String? = null
-        var notNull = Bool.of{a != null}.named("String is not null")
-        var longEnough = Bool.of{ (a!!.length > 7) }.named("String has at least 7 characters")
+        var notNull = Bool.of { a != null }.named("String is not null")
+        var longEnough = Bool.of { (a!!.length > 7) }.named("String has at least 7 characters")
 
         assertFalse((notNull and longEnough).isTrue(), "false because of a is null")
         assertEquals("String is not null - false", (notNull and longEnough).getCause(), "should be 'String is not null - false'")
@@ -53,7 +68,7 @@ class BoolTest {
     @Test
     fun testNaming() {
         val simpleBool = true.asBool()
-        assertEquals("", simpleBool.getCause(), "unnamed Bool has no cause")
+        assertEquals("TRUE - true", simpleBool.getCause(), "unnamed Bool has simple cause")
 
         val directlyNamed = true.asBool("directly")
         assertEquals("directly - true", directlyNamed.getCause(), "directly named Bool has wrong cause")
@@ -69,7 +84,7 @@ class BoolTest {
     fun testEquality() {
         var directlyNamed = true.asBool("directly")
         var lateNamed = true.asBool().named("directly")
-        assertFalse(directlyNamed == lateNamed, "false ")
+        assertTrue(directlyNamed == lateNamed, "false ")
 
         directlyNamed.booleanValue()
         lateNamed.booleanValue()
@@ -80,7 +95,7 @@ class BoolTest {
 
         // implicitly evaluate one of them
         lateNamed.booleanValue()
-        assertFalse(directlyNamed == lateNamed, "naming time has no impact on equality")
+        assertTrue(directlyNamed == lateNamed, "naming time has no impact on equality")
 
         var aNot = !directlyNamed
         var otherNot = !directlyNamed
@@ -91,4 +106,42 @@ class BoolTest {
         assertFalse(aNot == otherNot, "two not's of same bool but renamed should not be equal")
     }
 
+    @Test
+    fun testToString() {
+        val TRUE = true.asBool()
+        assertEquals("BOOLEAN(name='', value=true, entries=[Entry('TRUE': true)])", TRUE.toString(), "TRUE.toString()")
+
+        val FALSE = false.asBool()
+        assertEquals("BOOLEAN(name='', value=false, entries=[Entry('FALSE': false)])", FALSE.toString(), "FALSE.toString()")
+
+        FALSE.named("namedFalse")
+        assertEquals("BOOLEAN(name='namedFalse', value=false, entries=[Entry('namedFalse': false)])", FALSE.toString(), "namedFalse.toString()")
+
+        val otherTrue = Bool.of(true)
+        assertEquals("BOOLEAN(name='', value=true, entries=[Entry('TRUE': true)])", otherTrue.toString(), "otherTrue.toString()")
+
+        var a = 7
+        val directlyEvaluatedTrue = Bool.of(a < 10)
+        assertEquals("BOOLEAN(name='', value=true, entries=[Entry('TRUE': true)])", directlyEvaluatedTrue.toString(), "directlyEvaluatedTrue.toString()")
+
+        val deferredEvaluatedTrue = Bool.of { a < 10 }
+        assertTrue(deferredEvaluatedTrue.toString().startsWith("SUPPLIER(name='', supplierHash=#"), "deferredEvaluatedTrue.toString()")
+
+        deferredEvaluatedTrue.named("namedDeferred")
+        assertTrue(deferredEvaluatedTrue.toString().startsWith("SUPPLIER(name='namedDeferred', supplierHash=#"), "namedDeferred.toString()")
+
+        deferredEvaluatedTrue.booleanValue()
+        assertTrue(deferredEvaluatedTrue.toString().startsWith("SUPPLIER(name='namedDeferred', supplierHash=#"), "deferredEvaluatedTrue.toString() after booleanValue()")
+
+        val evaluated = deferredEvaluatedTrue.evaluated()
+        assertEquals("BOOLEAN(name='namedDeferred', value=true, entries=[Entry('namedDeferred': true)])", evaluated.toString(), "evaluated.toString()")
+
+        assertTrue(deferredEvaluatedTrue.booleanValue() == evaluated.booleanValue(), "deferred and evaluated should be synchronous by value")
+        assertTrue(deferredEvaluatedTrue.getCause() == evaluated.getCause(), "deferred and evaluated should be synchronous by cause")
+
+        a = 12
+
+        assertFalse(deferredEvaluatedTrue.booleanValue() == evaluated.booleanValue(), "deferred and evaluated should not be synchronous by value")
+        assertFalse(deferredEvaluatedTrue.getCause() == evaluated.getCause(), "deferred and evaluated should not be synchronous by cause")
+    }
 }
