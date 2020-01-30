@@ -26,7 +26,7 @@ val haveUmbrella = true.asBool("have umbrella?")
 val walkingInTheWood = sunIsShining and (!isRaining or haveUmbrella)
 
 println(walkingInTheWood.isTrue())   // -> true, but why?
-println(walkingInTheWood.getCause()) // -> sun is shining? - true, is raining - false
+println(walkingInTheWood.getCause()) // -> 'sun is shining?' - true, is raining - false
                                      //    so an umbrella doesn't change a thing today ;-)
 ```
 
@@ -41,7 +41,7 @@ var longEnough = Bool.of{ (a!!.length > 7) }.named("String has at least 7 charac
 println((notNull and longEnough).booleanValue()) // -> false because of a is null
 
 a = "Hallo Welt!"
-println((notNull and longEnough).getCause()) // String is not null - true, String has at least 7 characters - true
+println((notNull and longEnough).getCause()) // 'String is not null' - true, 'String has at least 7 characters' - true
 ```
 
 And even if you are **not** using the cause in your application, 
@@ -54,6 +54,8 @@ the debugger shows it. :blush:
 #### Download
 
 [ ![Download](https://api.bintray.com/packages/xeroli/maven/kbool/images/download.svg) ](https://bintray.com/xeroli/maven/kbool/_latestVersion)
+
+KBool is available on `jcenter()` and `mavenCentral()`.
 
 #### Maven
 ```xml
@@ -69,7 +71,7 @@ the debugger shows it. :blush:
   <dependency>
     <groupId>de.xeroli.kbool</groupId>
     <artifactId>kbool</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
   </dependency>
 </dependencies>
 ...
@@ -82,7 +84,7 @@ repositories {
 }
 
 dependencies {
-  compile('de.xeroli.kbool:kbool:0.4.0')
+  compile('de.xeroli.kbool:kbool:0.5.0')
 }
 ```
 
@@ -112,7 +114,7 @@ The sourcecode of snapshots are in the branch named ['snapshot'](https://github.
   <dependency>
     <groupId>de.xeroli.kbool</groupId>
     <artifactId>kbool</artifactId>
-    <version>0.5.0-SNAPSHOT</version>
+    <version>0.6.0-SNAPSHOT</version>
   </dependency>
 </dependencies>
 ...
@@ -125,7 +127,7 @@ repositories {
 }
 
 dependencies {
-  compile('de.xeroli.kbool:kbool:0.5.0-SNAPSHOT')
+  compile('de.xeroli.kbool:kbool:0.6.0-SNAPSHOT')
 }
 ```
 
