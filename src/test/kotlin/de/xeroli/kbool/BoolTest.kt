@@ -15,24 +15,22 @@
 */
 package de.xeroli.kbool
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 class BoolTest {
-    @Test
-    fun testSupplier() {
-        var a: String? = null
-        var notNull = Bool.of { a != null }.named("String is not null")
-        var longEnough = Bool.of { (a!!.length > 7) }.named("String has at least 7 characters")
 
-        assertFalse((notNull and longEnough).isTrue(), "false because of a is null")
-        assertEquals("String is not null - false", (notNull and longEnough).getCause(), "should be 'String is not null - false'")
+    @Test
+    fun testSomeSupplierBools() {
+        var a: String? = null
+        val notNull = Bool.of { a != null }.named("String is not null")
+        val longEnough = Bool.of { a!!.length > 7 }.named("String has at least 7 characters")
+
+        assertFalse((notNull and longEnough).isTrue(), "false because of 'a' is null")
+        assertEquals("'String is not null' - false", (notNull and longEnough).getCause(), "should be 'String is not null - false'")
 
         a = "Hallo Welt!"
-        assertTrue((notNull and longEnough).isTrue(), "false because of a is null")
-        assertEquals("String is not null - true, String has at least 7 characters - true", (notNull and longEnough).getCause(), "should be 'String is not null - false'")
+        assertTrue((notNull and longEnough).isTrue(), "false because of 'a' is null")
+        assertEquals("'String is not null' - true, 'String has at least 7 characters' - true", (notNull and longEnough).getCause(), "should be 'String is not null - false'")
 
         var i = 1
         val bool = Bool.of { i > 10 }.named("i greater than 10?")
@@ -46,7 +44,7 @@ class BoolTest {
         val sunIsShining = true.asBool()
         assertTrue(sunIsShining.isTrue(), "sunIsShining should return 'true'")
 
-        val isRaining = Bool.SupplierBool({ false.asBool() }).named("isRaining")
+        val isRaining = Bool.SupplierBool { false.asBool() }.named("isRaining")
         assertFalse((!isRaining).isFalse(), "isRaining should return 'false'")
 
         val haveUmbrella = true.asBool("haveUmbrella")
@@ -54,77 +52,76 @@ class BoolTest {
         val walkingInTheWood = sunIsShining.named("sunIsShining") and (!isRaining or haveUmbrella)
         assertTrue(walkingInTheWood.isTrue(), "walkingInTheWood should return 'true'")
 
-        assertEquals("[sunIsShining - true, isRaining - false]",
-                walkingInTheWood.getCause(prefix = "[", postfix = "]"),
-                "getCause shouldd return '[sunIsShining - true, isRaining - false]'")
+        assertEquals("'sunIsShining' - true, 'isRaining' - false",
+                walkingInTheWood.getCause(),
+                "getCause shouldd return 'sunIsShining - true, isRaining - false'")
 
         walkingInTheWood.named("walk")
-        assertEquals("[walk - true]",
-                walkingInTheWood.getCause(prefix = "[", postfix = "]"),
-                "getCause shouldd return '[walk - true]'")
-
+        assertEquals("'walk' - true",
+                walkingInTheWood.getCause(),
+                "getCause should return 'walk' - true")
     }
 
     @Test
     fun testNaming() {
         val simpleBool = true.asBool()
-        assertEquals("TRUE - true", simpleBool.getCause(), "unnamed Bool has simple cause")
+        assertEquals("'TRUE' - true", simpleBool.getCause(), "unnamed Bool has simple cause")
 
         val directlyNamed = true.asBool("directly")
-        assertEquals("directly - true", directlyNamed.getCause(), "directly named Bool has wrong cause")
+        assertEquals("'directly' - true", directlyNamed.getCause(), "directly named Bool has wrong cause")
 
         val lateNamed = true.asBool().named("late")
-        assertEquals("late - true", lateNamed.getCause(), "lately named Bool has wrong cause")
+        assertEquals("'late' - true", lateNamed.getCause(), "lately named Bool has wrong cause")
 
         val xorBool = (directlyNamed and !lateNamed) or (!directlyNamed and lateNamed)
-        assertEquals("late - true, directly - true", xorBool.getCause(), "xorBool named Bool has wrong cause")
+        assertEquals("'late' - true, 'directly' - true", xorBool.getCause(), "xorBool named Bool has wrong cause")
     }
 
     @Test
     fun testEquality() {
         var directlyNamed = true.asBool("directly")
         var lateNamed = true.asBool().named("directly")
-        assertTrue(directlyNamed == lateNamed, "false ")
+        assertEquals(directlyNamed, lateNamed, "false ")
 
         directlyNamed.booleanValue()
         lateNamed.booleanValue()
-        assertTrue(directlyNamed == lateNamed, "naming time has no impact on equality")
+        assertEquals(directlyNamed, lateNamed, "naming time has no impact on equality")
 
         directlyNamed = true.asBool("directly")
         lateNamed = true.asBool().named("directly")
 
         // implicitly evaluate one of them
         lateNamed.booleanValue()
-        assertTrue(directlyNamed == lateNamed, "naming time has no impact on equality")
+        assertEquals(directlyNamed, lateNamed, "naming time has no impact on equality")
 
         var aNot = !directlyNamed
         var otherNot = !directlyNamed
-        assertTrue(aNot == otherNot, "two not's of same bool should be equal")
+        assertEquals(aNot, otherNot, "two not's of same bool should be equal")
 
         aNot = !directlyNamed
         otherNot = directlyNamed.not().named("nonono")
-        assertFalse(aNot == otherNot, "two not's of same bool but renamed should not be equal")
+        assertNotEquals(aNot, otherNot, "two not's of same bool but renamed should not be equal")
     }
 
     @Test
     fun testToString() {
-        val TRUE = true.asBool()
-        assertEquals("BOOLEAN(name='', value=true, entries=[Entry('TRUE': true)])", TRUE.toString(), "TRUE.toString()")
+        val a = true.asBool()
+        assertEquals("BOOLEAN(name='', value=true, entries=[Entry('TRUE': true)])", a.toString(), "a.toString()")
 
-        val FALSE = false.asBool()
-        assertEquals("BOOLEAN(name='', value=false, entries=[Entry('FALSE': false)])", FALSE.toString(), "FALSE.toString()")
+        val b = false.asBool()
+        assertEquals("BOOLEAN(name='', value=false, entries=[Entry('FALSE': false)])", b.toString(), "b.toString()")
 
-        FALSE.named("namedFalse")
-        assertEquals("BOOLEAN(name='namedFalse', value=false, entries=[Entry('namedFalse': false)])", FALSE.toString(), "namedFalse.toString()")
+        b.named("namedFalse")
+        assertEquals("BOOLEAN(name='namedFalse', value=false, entries=[Entry('namedFalse': false)])", b.toString(), "namedFalse.toString()")
 
         val otherTrue = Bool.of(true)
         assertEquals("BOOLEAN(name='', value=true, entries=[Entry('TRUE': true)])", otherTrue.toString(), "otherTrue.toString()")
 
-        var a = 7
-        val directlyEvaluatedTrue = Bool.of(a < 10)
+        var i = 7
+        val directlyEvaluatedTrue = Bool.of(i < 10)
         assertEquals("BOOLEAN(name='', value=true, entries=[Entry('TRUE': true)])", directlyEvaluatedTrue.toString(), "directlyEvaluatedTrue.toString()")
 
-        val deferredEvaluatedTrue = Bool.of { a < 10 }
+        val deferredEvaluatedTrue = Bool.of { i < 10 }
         assertTrue(deferredEvaluatedTrue.toString().startsWith("SUPPLIER(name='', supplierHash=#"), "deferredEvaluatedTrue.toString()")
 
         deferredEvaluatedTrue.named("namedDeferred")
@@ -136,12 +133,74 @@ class BoolTest {
         val evaluated = deferredEvaluatedTrue.evaluated()
         assertEquals("BOOLEAN(name='namedDeferred', value=true, entries=[Entry('namedDeferred': true)])", evaluated.toString(), "evaluated.toString()")
 
-        assertTrue(deferredEvaluatedTrue.booleanValue() == evaluated.booleanValue(), "deferred and evaluated should be synchronous by value")
-        assertTrue(deferredEvaluatedTrue.getCause() == evaluated.getCause(), "deferred and evaluated should be synchronous by cause")
+        assertEquals(deferredEvaluatedTrue.booleanValue(), evaluated.booleanValue(), "deferred and evaluated should be synchronous by value")
+        assertEquals(deferredEvaluatedTrue.getCause(), evaluated.getCause(), "deferred and evaluated should be synchronous by cause")
 
-        a = 12
+        i = 12
 
-        assertFalse(deferredEvaluatedTrue.booleanValue() == evaluated.booleanValue(), "deferred and evaluated should not be synchronous by value")
-        assertFalse(deferredEvaluatedTrue.getCause() == evaluated.getCause(), "deferred and evaluated should not be synchronous by cause")
+        assertNotEquals(deferredEvaluatedTrue.booleanValue(), evaluated.booleanValue(), "deferred and evaluated should not be synchronous by value")
+        assertNotEquals(deferredEvaluatedTrue.getCause(), evaluated.getCause(), "deferred and evaluated should not be synchronous by cause")
+    }
+
+    @Test
+    fun testConstructingNotBoolToString() {
+        val i = 7
+        val deferredEvaluatedTrue = Bool.of { i < 10 }
+        deferredEvaluatedTrue.named("namedDeferred")
+        val a = true.asBool()
+
+        assertEquals("BOOLEAN(name='', value=false, entries=[Entry('TRUE': true)])", a.not().toString(), "not on an evaluated Bool")
+        assertTrue(deferredEvaluatedTrue.not().toString().startsWith("NOT(name='', SUPPLIER(name='namedDeferred', supplierHash=#"), "not on an deferred Bool")
+    }
+
+    @Test
+    fun testConstructingAndBoolToString() {
+        val i = 7
+        val deferredEvaluatedTrue = Bool.of { i < 10 }
+        deferredEvaluatedTrue.named("namedDeferred")
+        val a = true.asBool().named("A")
+        val b = true.asBool().named("B")
+        val c = false.asBool().named("C")
+
+        assertEquals("BOOLEAN(name='C', value=false, entries=[Entry('C': false)])", (c and a).toString(), "and on an evaluated Bools (left plays)")
+        assertEquals("BOOLEAN(name='C', value=false, entries=[Entry('C': false)])", (a and c).toString(), "and on an evaluated Bools (right plays)")
+        assertEquals("BOOLEAN(name='', value=true, entries=[Entry('A': true), Entry('B': true)])", (a and b).toString(), "and on an evaluated Bools (both play)")
+        assertTrue((a and deferredEvaluatedTrue).toString().startsWith("AND(name='', left=BOOLEAN(name='A', value=true, entries=[Entry('A': true)]), right=SUPPLIER(name='namedDeferred', supplierHash=#"), "and on deferred")
+        assertEquals("BOOLEAN(name='C', value=false, entries=[Entry('C': false)])", (c and deferredEvaluatedTrue).toString(), "and on decidable deferred Bool (left plays)")
+    }
+
+    @Test
+    fun testConstructingOrBoolToString() {
+        val i = 7
+        val deferredEvaluatedTrue = Bool.of { i < 10 }
+        deferredEvaluatedTrue.named("namedDeferred")
+        val a = true.asBool().named("A")
+        val b = false.asBool().named("B")
+        val c = false.asBool().named("C")
+
+        assertEquals("BOOLEAN(name='A', value=true, entries=[Entry('A': true)])",
+                (a or c).toString(),
+                "or on an evaluated Bools (left plays)")
+        assertEquals("BOOLEAN(name='A', value=true, entries=[Entry('A': true)])",
+                (c or a).toString(),
+                "or on an evaluated Bools (right plays)")
+        assertEquals("BOOLEAN(name='', value=false, entries=[Entry('C': false), Entry('B': false)])",
+                (c or b).toString(),
+                "or on an evaluated Bools (both play)")
+        assertTrue((c or deferredEvaluatedTrue).toString().startsWith(
+                "OR(name='', left=BOOLEAN(name='C', value=false, entries=[Entry('C': false)]), right=SUPPLIER(name='namedDeferred', supplierHash=#"),
+                "or on deferred")
+        assertEquals("BOOLEAN(name='A', value=true, entries=[Entry('A': true)])",
+                (a or deferredEvaluatedTrue).toString(),
+                "or on decidable deferred Bool (left plays)")
+    }
+
+    @Test
+    fun testGetCause() {
+        val a = true.asBool("a")
+        val b = false.asBool("b")
+        val c = (a and !b).evaluated()
+        assertEquals("'a' - true, 'b' - false", c.getCause(), "getCause()")
+        assertEquals("a and (not b)", c.getCause(" and ") { k, v -> if (v) k else "(not $k)" }, "getCause() alternative string")
     }
 }
