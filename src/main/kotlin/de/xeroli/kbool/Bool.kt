@@ -15,16 +15,14 @@
 */
 package de.xeroli.kbool
 
-import kotlin.IllegalArgumentException
+
 import kotlin.streams.asSequence
 
 /**
  * Bool - a simple class providing a transparent boolean algebra
  * for usage see https://github.com/xeroli/kbool
  */
-abstract class Bool private constructor(internal val type: Type) {
-
-    internal enum class Type { BOOLEAN, SUPPLIER, AND, OR, NOT, XOR }
+abstract class Bool internal constructor() {
 
     internal var name: String = ""
 
@@ -43,90 +41,12 @@ abstract class Bool private constructor(internal val type: Type) {
         fun of(bool: Boolean): Bool = EvaluatedBool(bool)
     }
 
-    internal class EvaluatedBool(internal var value: Boolean, internal val entries: MutableSet<Entry> = mutableSetOf(Entry(value.toString().toUpperCase(), value))) : Bool(Type.BOOLEAN) {
-
-        internal data class Entry(val key: String, val value: Boolean) {
-            override fun toString() = "Entry('$key': $value)"
-        }
-
-        override fun evaluate() = this
-        override fun toString() = "$type(name='$name', value=$value, entries=$entries)"
-
-        internal fun rename(newName: String): EvaluatedBool {
-            if (newName.isNotBlank()) {
-                this.named(newName)
-            }
-            return this
-        }
-
-        internal fun toggle(): EvaluatedBool {
-            this.value = !this.value
-            return this
-        }
-    }
-
-    internal class SupplierBool(private val boolSupplier: () -> Bool) : Bool(Type.SUPPLIER) {
-        constructor(bool: Boolean) : this({ EvaluatedBool(bool) })
-
-        override fun evaluate() = this.boolSupplier().evaluate().rename(this.name)
-        override fun toString() = "$type(name='$name', supplierHash=#${boolSupplier.hashCode()})"
-    }
-
-    internal class NotBool(private val inner: Bool) : Bool(Type.NOT) {
-        override fun evaluate() = this.inner.evaluate().toggle().rename(this.name)
-        override fun toString() = "$type(name='$name', $inner)"
-    }
-
-    internal class BinaryBool internal constructor(type: Type, private val left: Bool, private val right: Bool) : Bool(type) {
-
-        private fun isShortCircuitPossible(innerBool: EvaluatedBool) =
-                (((type == Type.AND) and !innerBool.value)
-                        or ((type == Type.OR) and innerBool.value))
-
-        private fun applyBinaryFunction(innerLeft: EvaluatedBool, innerRight: EvaluatedBool) = when (type) {
-            Type.AND -> innerLeft.value and innerRight.value
-            Type.OR -> innerLeft.value or innerRight.value
-            Type.XOR -> innerLeft.value xor innerRight.value
-            else -> throw IllegalArgumentException("unknown type")
-        }
-
-        override fun evaluate(): EvaluatedBool {
-            val innerLeft = left.evaluate()
-            if (isShortCircuitPossible(innerLeft))
-                return innerLeft.rename(this.name)
-
-            val innerRight = right.evaluate()
-            if (isShortCircuitPossible(innerRight))
-                return innerRight.rename(this.name)
-
-            val innerValue = applyBinaryFunction(innerLeft, innerRight)
-            val innerEntries = mutableSetOf<EvaluatedBool.Entry>()
-            innerEntries.addAll(innerLeft.entries)
-            innerEntries.addAll(innerRight.entries)
-            return EvaluatedBool(innerValue, innerEntries).rename(this.name)
-        }
-
-        override fun toString() = "$type(name='$name', left=$left, right=$right)"
-    }
-
     /**
      * booleanValue()
      * returns the booleanValuu of the evaluated Bool.
      * If the Bool isn't evaluated yet, the evaluation ist forced.
      */
     fun booleanValue() = this.evaluate().value
-
-    /**
-     * isTrue()
-     * returns true if booleanValue() returns true
-     */
-    fun isTrue() = this.booleanValue()
-
-    /**
-     * isFalse()
-     * returns true if booleanValue() returns false
-     */
-    fun isFalse() = !this.booleanValue()
 
     /**
      * getCause()
@@ -159,71 +79,11 @@ abstract class Bool private constructor(internal val type: Type) {
     fun evaluated(): Bool = evaluate()
 
     /**
-     * and()
-     * returns a Bool representing the value of (left and right)
-     * if evaluation is possible, an evaluated Bool will be returned
-     */
-    infix fun and(other: Bool): Bool {
-        if (this.type == Type.BOOLEAN) {
-            if (this.isFalse())
-                return this
-            if (other.type == Type.BOOLEAN) {
-                if (other.isFalse())
-                    return other
-            }
-        }
-        return if (this is EvaluatedBool && other is EvaluatedBool) {
-            val combinedEntries = mutableSetOf<EvaluatedBool.Entry>()
-            combinedEntries.addAll(this.entries)
-            combinedEntries.addAll(other.entries)
-            EvaluatedBool(true, combinedEntries)
-        } else {
-            BinaryBool(Type.AND, this, other)
-        }
-    }
-
-    /**
-     * or()
-     * returns a Bool representing the value of (left or right)
-     * if evaluation is possible, an evaluated Bool will be returned
-     */
-    infix fun or(other: Bool): Bool {
-        if (this.type == Type.BOOLEAN) {
-            if (this.isTrue())
-                return this
-            if (other.type == Type.BOOLEAN) {
-                if (other.isTrue())
-                    return other
-            }
-        }
-        return if (this is EvaluatedBool && other is EvaluatedBool) {
-            val combinedEntries = mutableSetOf<EvaluatedBool.Entry>()
-            combinedEntries.addAll(this.entries)
-            combinedEntries.addAll(other.entries)
-            EvaluatedBool(false, combinedEntries)
-        } else {
-            BinaryBool(Type.OR, this, other)
-        }
-    }
-
-    /**
-     * not()
-     * returns the negation of the Bool.
-     * if it was evaluated, the resultin Bool ist evaluated too.
-     * if not, a new not-evaluated Bool will be returned
-     */
-    operator fun not(): Bool = if (this is EvaluatedBool) {
-        EvaluatedBool(this.isFalse(), this.entries)
-    } else {
-        NotBool(this)
-    }
-
-    /**
      * toString()
      * produces an unique value for Bool instances, that are not evaluated.
      * As soon as a Bool ist evaluated, only value and cause are relevant.
      */
-    override fun toString() = "$type(name='$name')"
+    override fun toString() = "BOOL(name='$name')"
 
     /**
      * equals()
@@ -244,10 +104,85 @@ abstract class Bool private constructor(internal val type: Type) {
      * returns a modified hashCode of the result of toString()
      */
     override fun hashCode(): Int {
-        var result = type.hashCode()
+        var result = javaClass.simpleName.hashCode()
         result = 31 * result + toString().hashCode()
         return result
     }
+
+    /**
+     * not()
+     * returns the negation of the Bool.
+     * if it was evaluated, the resultin Bool ist evaluated too.
+     * if not, a new not-evaluated Bool will be returned
+     */
+    operator fun not(): Bool = if (this is EvaluatedBool) {
+        EvaluatedBool(this.isFalse(), this.entries)
+    } else {
+        NotBool(this)
+    }
+
+    /**
+     * and()
+     * returns a Bool representing the value of (left and right)
+     * if evaluation is possible, an evaluated Bool will be returned
+     */
+    infix fun and(other: Bool): Bool {
+        if (this is EvaluatedBool) {
+            if (this.isFalse())
+                return this
+            if (other is EvaluatedBool) {
+                if (other.isFalse())
+                    return other
+            }
+        }
+        return if (this is EvaluatedBool && other is EvaluatedBool) {
+            val combinedEntries = mutableSetOf<EvaluatedBool.Entry>()
+            combinedEntries.addAll(this.entries)
+            combinedEntries.addAll(other.entries)
+            EvaluatedBool(true, combinedEntries)
+        } else {
+            AndBool(this, other)
+        }
+    }
+
+    /**
+     * or()
+     * returns a Bool representing the value of (left or right)
+     * if evaluation is possible, an evaluated Bool will be returned
+     */
+    infix fun or(other: Bool): Bool {
+        if (this is EvaluatedBool) {
+            if (this.isTrue())
+                return this
+            if (other is EvaluatedBool) {
+                if (other.isTrue())
+                    return other
+            }
+        }
+        return if (this is EvaluatedBool && other is EvaluatedBool) {
+            val combinedEntries = mutableSetOf<EvaluatedBool.Entry>()
+            combinedEntries.addAll(this.entries)
+            combinedEntries.addAll(other.entries)
+            EvaluatedBool(false, combinedEntries)
+        } else {
+            OrBool(this, other)
+        }
+    }
+
+    /**
+     * xor()
+     * returns a Bool representing the value of (left xor right)
+     * if evaluation is possible, an evaluated Bool will be returned
+     */
+    infix fun xor(other: Bool): Bool =
+            if (this is EvaluatedBool && other is EvaluatedBool) {
+                val combinedEntries = mutableSetOf<EvaluatedBool.Entry>()
+                combinedEntries.addAll(this.entries)
+                combinedEntries.addAll(other.entries)
+                EvaluatedBool(this.value xor other.value, combinedEntries)
+            } else {
+                XorBool(this, other)
+            }
+
 }
 
-fun Boolean.asBool(name: String = ""): Bool = Bool.EvaluatedBool(this).named(name)
