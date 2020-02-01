@@ -1,6 +1,10 @@
 # KBool
 
-[![Build Status](https://travis-ci.com/xeroli/kbool.svg?branch=master)](https://travis-ci.com/xeroli/kbool) [![Apache License](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![Build Status](https://travis-ci.com/xeroli/kbool.svg?branch=master)](https://travis-ci.com/xeroli/kbool) 
+[![Apache License](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/cd99354f653c49bba7622295aa011568)](https://www.codacy.com/manual/xeroli/kbool?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=xeroli/kbool&amp;utm_campaign=Badge_Grade)
+[![BCH compliance](https://bettercodehub.com/edge/badge/xeroli/kbool?branch=master)](https://bettercodehub.com/)
+
 ## Summary
 
 **KBool** is a simple kotlin library providing a transparent boolean algebra.
@@ -17,7 +21,7 @@ Basically, one is always looking for the answer to the question: Which part of a
 
 This is what **KBool** tries to reach.
 
-### Code example
+## Code example
 ```kotlin
 val sunIsShining = true.asBool("sun is shinig?")
 val isRaining = false.asBool().named("is raining?")
@@ -26,7 +30,7 @@ val haveUmbrella = true.asBool("have umbrella?")
 val walkingInTheWood = sunIsShining and (!isRaining or haveUmbrella)
 
 println(walkingInTheWood.isTrue())   // -> true, but why?
-println(walkingInTheWood.getCause()) // -> 'sun is shining?' - true, is raining - false
+println(walkingInTheWood.getCause()) // -> 'sun is shining?' - 'true, is raining' - false
                                      //    so an umbrella doesn't change a thing today ;-)
 ```
 
@@ -51,13 +55,13 @@ the debugger shows it. :blush:
 
 ## Latest Stable Release
 
-#### Download
+### Download
 
-[ ![Download](https://api.bintray.com/packages/xeroli/maven/kbool/images/download.svg) ](https://bintray.com/xeroli/maven/kbool/_latestVersion)
+[![Download](https://api.bintray.com/packages/xeroli/maven/kbool/images/download.svg)](https://bintray.com/xeroli/maven/kbool/_latestVersion)
 
-KBool is available on `jcenter()` and `mavenCentral()`.
+KBool is available on `jcenter()`.
 
-#### Maven
+### Maven
 ```xml
 ...
 <repositories>
@@ -77,7 +81,7 @@ KBool is available on `jcenter()` and `mavenCentral()`.
 ...
 ```
 
-#### Gradle
+### Gradle
 ```groovy
 repositories {
   jcenter()
@@ -100,7 +104,7 @@ You can also reference a specific snapshot like `0.2.0-20200125.081709-1`.
 Here's the [list of snapshot versions](https://oss.jfrog.org/webapp/#/artifacts/browse/tree/General/oss-snapshot-local/de/xeroli/kbool/kbool).
 
 The sourcecode of snapshots are in the branch named ['snapshot'](https://github.com/xeroli/kbool/tree/snapshot).
-#### Maven
+### Maven (Snapshot)
 ```xml
 ...
 <repositories>
@@ -120,7 +124,7 @@ The sourcecode of snapshots are in the branch named ['snapshot'](https://github.
 ...
 ```
 
-#### Gradle
+### Gradle (Snapshot)
 ```groovy
 repositories {
   maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
@@ -130,7 +134,3 @@ dependencies {
   compile('de.xeroli.kbool:kbool:0.6.0-SNAPSHOT')
 }
 ```
-
-
-
-
