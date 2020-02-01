@@ -17,6 +17,9 @@ package de.xeroli.kbool
 
 import kotlin.test.*
 
+/**
+ * overall tests
+ */
 class BoolTest {
 
     @Test
@@ -79,27 +82,22 @@ class BoolTest {
 
     @Test
     fun testEquality() {
-        var directlyNamed = true.asBool("directly")
-        var lateNamed = true.asBool().named("directly")
-        assertEquals(directlyNamed, lateNamed, "false ")
+        val uniqueName = "uniqueName";
 
-        directlyNamed.booleanValue()
-        lateNamed.booleanValue()
-        assertEquals(directlyNamed, lateNamed, "naming time has no impact on equality")
+        var firstBool = true.asBool(uniqueName)
+        var secondBool = true.asBool().named(uniqueName)
+        assertEquals(firstBool, secondBool, "Bool with name equals Bool with name by named()")
 
-        directlyNamed = true.asBool("directly")
-        lateNamed = true.asBool().named("directly")
+        assertEquals(firstBool.booleanValue(), secondBool.booleanValue(), "naming time has no impact on equality")
 
-        // implicitly evaluate one of them
-        lateNamed.booleanValue()
-        assertEquals(directlyNamed, lateNamed, "naming time has no impact on equality")
+        firstBool = true.asBool(uniqueName)
 
-        var aNot = !directlyNamed
-        var otherNot = !directlyNamed
+        var aNot = !firstBool
+        var otherNot = !firstBool
         assertEquals(aNot, otherNot, "two not's of same bool should be equal")
 
-        aNot = !directlyNamed
-        otherNot = directlyNamed.not().named("nonono")
+        aNot = !firstBool
+        otherNot = firstBool.not().named("no-no-no")
         assertNotEquals(aNot, otherNot, "two not's of same bool but renamed should not be equal")
     }
 
@@ -162,11 +160,13 @@ class BoolTest {
         val b = true.asBool().named("B")
         val c = false.asBool().named("C")
 
-        assertEquals("BOOLEAN(name='C', value=false, entries=[Entry('C': false)])", (c and a).toString(), "and on an evaluated Bools (left plays)")
-        assertEquals("BOOLEAN(name='C', value=false, entries=[Entry('C': false)])", (a and c).toString(), "and on an evaluated Bools (right plays)")
+        val stringOfC = c.toString()
+
+        assertEquals(stringOfC, (c and a).toString(), "and on an evaluated Bools (left plays)")
+        assertEquals(stringOfC, (a and c).toString(), "and on an evaluated Bools (right plays)")
         assertEquals("BOOLEAN(name='', value=true, entries=[Entry('A': true), Entry('B': true)])", (a and b).toString(), "and on an evaluated Bools (both play)")
         assertTrue((a and deferredEvaluatedTrue).toString().startsWith("AND(name='', left=BOOLEAN(name='A', value=true, entries=[Entry('A': true)]), right=SUPPLIER(name='namedDeferred', supplierHash=#"), "and on deferred")
-        assertEquals("BOOLEAN(name='C', value=false, entries=[Entry('C': false)])", (c and deferredEvaluatedTrue).toString(), "and on decidable deferred Bool (left plays)")
+        assertEquals(stringOfC, (c and deferredEvaluatedTrue).toString(), "and on decidable deferred Bool (left plays)")
     }
 
     @Test
@@ -178,21 +178,16 @@ class BoolTest {
         val b = false.asBool().named("B")
         val c = false.asBool().named("C")
 
-        assertEquals("BOOLEAN(name='A', value=true, entries=[Entry('A': true)])",
-                (a or c).toString(),
-                "or on an evaluated Bools (left plays)")
-        assertEquals("BOOLEAN(name='A', value=true, entries=[Entry('A': true)])",
-                (c or a).toString(),
-                "or on an evaluated Bools (right plays)")
+        val stringOfA = a.toString()
+
+        assertEquals(stringOfA, (a or c).toString(), "or on an evaluated Bools (left plays)")
+        assertEquals(stringOfA, (c or a).toString(), "or on an evaluated Bools (right plays)")
         assertEquals("BOOLEAN(name='', value=false, entries=[Entry('C': false), Entry('B': false)])",
-                (c or b).toString(),
-                "or on an evaluated Bools (both play)")
+                (c or b).toString(), "or on an evaluated Bools (both play)")
         assertTrue((c or deferredEvaluatedTrue).toString().startsWith(
                 "OR(name='', left=BOOLEAN(name='C', value=false, entries=[Entry('C': false)]), right=SUPPLIER(name='namedDeferred', supplierHash=#"),
                 "or on deferred")
-        assertEquals("BOOLEAN(name='A', value=true, entries=[Entry('A': true)])",
-                (a or deferredEvaluatedTrue).toString(),
-                "or on decidable deferred Bool (left plays)")
+        assertEquals(stringOfA, (a or deferredEvaluatedTrue).toString(), "or on decidable deferred Bool (left plays)")
     }
 
     @Test
@@ -203,4 +198,5 @@ class BoolTest {
         assertEquals("'a' - true, 'b' - false", c.getCause(), "getCause()")
         assertEquals("a and (not b)", c.getCause(" and ") { k, v -> if (v) k else "(not $k)" }, "getCause() alternative string")
     }
+
 }

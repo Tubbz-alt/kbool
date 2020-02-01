@@ -28,6 +28,9 @@ abstract class Bool private constructor(internal val type: Type) {
 
     internal var name: String = ""
 
+    /**
+     * provides a simple way to create instances of Bool
+     */
     companion object Factory {
         /**
          * Bool.of( ()->Boolean ) - factory method to create an Bool with late evaluation
@@ -42,7 +45,7 @@ abstract class Bool private constructor(internal val type: Type) {
 
     internal class EvaluatedBool(internal var value: Boolean, internal val entries: MutableSet<Entry> = mutableSetOf(Entry(value.toString().toUpperCase(), value))) : Bool(Type.BOOLEAN) {
 
-        data class Entry(val key: String, val value: Boolean) {
+        internal data class Entry(val key: String, val value: Boolean) {
             override fun toString() = "Entry('$key': $value)"
         }
 
@@ -75,32 +78,31 @@ abstract class Bool private constructor(internal val type: Type) {
     }
 
     internal class BinaryBool internal constructor(type: Type, private val left: Bool, private val right: Bool) : Bool(type) {
+
+        private fun isShortCircuitPossible(innerBool: EvaluatedBool) =
+                (((type == Type.AND) and !innerBool.value)
+                        or ((type == Type.OR) and innerBool.value))
+
+        private fun applyBinaryFunction(innerLeft: EvaluatedBool, innerRight: EvaluatedBool) = when (type) {
+            Type.AND -> innerLeft.value and innerRight.value
+            Type.OR -> innerLeft.value or innerRight.value
+            Type.XOR -> innerLeft.value xor innerRight.value
+            else -> throw IllegalArgumentException("unknown type")
+        }
+
         override fun evaluate(): EvaluatedBool {
             val innerLeft = left.evaluate()
-            when (type) {
-                Type.AND -> if (!innerLeft.value) return innerLeft.rename(this.name)
-                Type.OR -> if (innerLeft.value) return innerLeft.rename(this.name)
-                else -> {
-                }
-            }
+            if (isShortCircuitPossible(innerLeft))
+                return innerLeft.rename(this.name)
+
             val innerRight = right.evaluate()
-            when (type) {
-                Type.AND -> if (!innerRight.value) return innerRight.rename(this.name)
-                Type.OR -> if (innerRight.value) return innerRight.rename(this.name)
-                else -> {
-                }
-            }
-            val innerValue = when (type) {
-                Type.AND -> innerLeft.value and innerRight.value
-                Type.OR -> innerLeft.value or innerRight.value
-                Type.XOR -> innerLeft.value xor innerRight.value
-                else -> throw IllegalArgumentException("unknown type")
-            }
+            if (isShortCircuitPossible(innerRight))
+                return innerRight.rename(this.name)
+
+            val innerValue = applyBinaryFunction(innerLeft, innerRight)
             val innerEntries = mutableSetOf<EvaluatedBool.Entry>()
-            if (this.name.isBlank()) {
-                innerEntries.addAll(innerLeft.entries)
-                innerEntries.addAll(innerRight.entries)
-            }
+            innerEntries.addAll(innerLeft.entries)
+            innerEntries.addAll(innerRight.entries)
             return EvaluatedBool(innerValue, innerEntries).rename(this.name)
         }
 
@@ -130,8 +132,8 @@ abstract class Bool private constructor(internal val type: Type) {
      * getCause()
      * returns the cause of an evaluated Bool as String. If the Bool isn't ebvaluated yet, evaluation is forced.
      */
-    fun getCause(separator: String = ", ", entryString: (k: String, v: Boolean) -> String = {k,v->"'$k' - ${v.toString()}"}): String {
-      return this.evaluate().entries.stream().map { entryString(it.key, it.value) }.asSequence().joinToString(separator)
+    fun getCause(separator: String = ", ", entryString: (k: String, v: Boolean) -> String = { k, v -> "'$k' - ${v.toString()}" }): String {
+        return this.evaluate().entries.stream().map { entryString(it.key, it.value) }.asSequence().joinToString(separator)
     }
 
     /**
