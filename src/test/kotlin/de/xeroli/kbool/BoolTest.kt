@@ -22,6 +22,18 @@ import kotlin.test.*
  */
 class BoolTest {
 
+    private val lengthOfNoNameTrue = 52
+//    private val lengthOfNoNameFalse = 53
+    private val startOfNoNameEntry = "'NONAME_"
+//    private val endOfFalseEntry = "' - false"
+    private val endOfTrueEntry = "' - true"
+
+    private val startOfNoNameTrueToString = "BOOLEAN(name='', value=true, entries=[Entry("
+    private val startOfNoNameFalseToString = "BOOLEAN(name='', value=false, entries=[Entry("
+    private val endOfToString = ")])"
+    private val endOfFalseEntryToString = "': false"
+    private val endOfTrueEntryToString = "': true"
+
     @Test
     fun testSomeSupplierBools() {
         var a: String? = null
@@ -47,7 +59,7 @@ class BoolTest {
         val sunIsShining = true.asBool()
         assertTrue(sunIsShining.isTrue(), "sunIsShining should return 'true'")
 
-        val isRaining = Bool.SupplierBool { false.asBool() }.named("isRaining")
+        val isRaining = Bool.of { false }.named("isRaining")
         assertFalse((!isRaining).isFalse(), "isRaining should return 'false'")
 
         val haveUmbrella = true.asBool("haveUmbrella")
@@ -68,24 +80,26 @@ class BoolTest {
     @Test
     fun testNaming() {
         val simpleBool = true.asBool()
-        assertEquals("'TRUE' - true", simpleBool.getCause(), "unnamed Bool has simple cause")
+        assertTrue(simpleBool.getCause().startsWith(startOfNoNameEntry))
+        assertTrue(simpleBool.getCause().endsWith(endOfTrueEntry))
+        assertEquals(lengthOfNoNameTrue, simpleBool.getCause().length)
 
         val directlyNamed = true.asBool("directly")
-        assertEquals("'directly' - true", directlyNamed.getCause(), "directly named Bool has wrong cause")
+        assertEquals("'directly' - true", directlyNamed.getCause())
 
         val lateNamed = true.asBool().named("late")
-        assertEquals("'late' - true", lateNamed.getCause(), "lately named Bool has wrong cause")
+        assertEquals("'late' - true", lateNamed.getCause())
 
         val xorBool = (directlyNamed and !lateNamed) or (!directlyNamed and lateNamed)
-        assertEquals("'late' - true, 'directly' - true", xorBool.getCause(), "xorBool named Bool has wrong cause")
+        assertEquals("'late' - true, 'directly' - true", xorBool.getCause())
     }
 
     @Test
     fun testEquality() {
-        val uniqueName = "uniqueName";
+        val uniqueName = "uniqueName"
 
         var firstBool = true.asBool(uniqueName)
-        var secondBool = true.asBool().named(uniqueName)
+        val secondBool = true.asBool().named(uniqueName)
         assertEquals(firstBool, secondBool, "Bool with name equals Bool with name by named()")
 
         assertEquals(firstBool.booleanValue(), secondBool.booleanValue(), "naming time has no impact on equality")
@@ -104,20 +118,23 @@ class BoolTest {
     @Test
     fun testToString() {
         val a = true.asBool()
-        assertEquals("BOOLEAN(name='', value=true, entries=[Entry('TRUE': true)])", a.toString(), "a.toString()")
+        assertTrue(a.toString().startsWith(startOfNoNameTrueToString + startOfNoNameEntry))
+        assertTrue(a.toString().endsWith(endOfTrueEntryToString + endOfToString))
 
         val b = false.asBool()
-        assertEquals("BOOLEAN(name='', value=false, entries=[Entry('FALSE': false)])", b.toString(), "b.toString()")
+        assertTrue(b.toString().startsWith(startOfNoNameFalseToString + startOfNoNameEntry), b.toString())
+        assertTrue(b.toString().endsWith(endOfFalseEntryToString + endOfToString))
 
         b.named("namedFalse")
         assertEquals("BOOLEAN(name='namedFalse', value=false, entries=[Entry('namedFalse': false)])", b.toString(), "namedFalse.toString()")
 
         val otherTrue = Bool.of(true)
-        assertEquals("BOOLEAN(name='', value=true, entries=[Entry('TRUE': true)])", otherTrue.toString(), "otherTrue.toString()")
-
+        assertTrue(otherTrue.toString().startsWith(startOfNoNameTrueToString + startOfNoNameEntry))
+        assertTrue(otherTrue.toString().endsWith(endOfTrueEntryToString + endOfToString))
         var i = 7
         val directlyEvaluatedTrue = Bool.of(i < 10)
-        assertEquals("BOOLEAN(name='', value=true, entries=[Entry('TRUE': true)])", directlyEvaluatedTrue.toString(), "directlyEvaluatedTrue.toString()")
+        assertTrue(directlyEvaluatedTrue.toString().startsWith(startOfNoNameTrueToString + startOfNoNameEntry))
+        assertTrue(directlyEvaluatedTrue.toString().endsWith(endOfTrueEntryToString + endOfToString))
 
         val deferredEvaluatedTrue = Bool.of { i < 10 }
         assertTrue(deferredEvaluatedTrue.toString().startsWith("SUPPLIER(name='', supplierHash=#"), "deferredEvaluatedTrue.toString()")
@@ -145,9 +162,9 @@ class BoolTest {
         val i = 7
         val deferredEvaluatedTrue = Bool.of { i < 10 }
         deferredEvaluatedTrue.named("namedDeferred")
-        val a = true.asBool()
+        val a = true.asBool().named("a")
 
-        assertEquals("BOOLEAN(name='', value=false, entries=[Entry('TRUE': true)])", a.not().toString(), "not on an evaluated Bool")
+        assertEquals("BOOLEAN(name='', value=false, entries=[Entry('a': true)])", a.not().toString(), "not on an evaluated Bool")
         assertTrue(deferredEvaluatedTrue.not().toString().startsWith("NOT(name='', SUPPLIER(name='namedDeferred', supplierHash=#"), "not on an deferred Bool")
     }
 
@@ -199,4 +216,28 @@ class BoolTest {
         assertEquals("a and (not b)", c.getCause(" and ") { k, v -> if (v) k else "(not $k)" }, "getCause() alternative string")
     }
 
+    @Test
+    fun testXor() {
+        val true1 = Bool.of(true)
+        val true2 = Bool.of { true }
+        val false1 = Bool.of(false)
+        val false2 = Bool.of { false }
+
+        assertTrue((true1 xor false1).booleanValue())
+        assertTrue((true1 xor false2).booleanValue())
+        assertTrue((true2 xor false1).booleanValue())
+        assertTrue((true2 xor false2).booleanValue())
+        assertTrue((false1 xor true1).booleanValue())
+        assertTrue((false1 xor true2).booleanValue())
+        assertTrue((false2 xor true1).booleanValue())
+        assertTrue((false2 xor true2).booleanValue())
+
+        assertFalse((true2 xor true2).booleanValue())
+        assertFalse((false2 xor false2).booleanValue())
+
+        true1.named("true1")
+        false2.named("false2")
+        assertEquals("'true1' - true, 'false2' - false", (true1 xor false2).getCause())
+
+    }
 }

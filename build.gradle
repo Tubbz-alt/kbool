@@ -9,7 +9,7 @@ plugins {
 
 ext {
     ext.snapshotversion = '0.6.0'
-    ext.stableversion = '0.5.0'
+    ext.stableversion = '0.5.1'
 
     bintrayUser = System.getProperty("bintray.user")
     bintrayKey = System.getProperty("bintray.key")

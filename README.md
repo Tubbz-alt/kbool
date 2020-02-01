@@ -53,6 +53,8 @@ the debugger shows it. :blush:
 
 ![Screenshot from Debugger](doc/debugger.jpg)
 
+For a simple tuorial see the [wiki](https://github.com/xeroli/kbool/wiki).
+
 ## Latest Stable Release
 
 ### Download
@@ -75,7 +77,7 @@ KBool is available on `jcenter()`.
   <dependency>
     <groupId>de.xeroli.kbool</groupId>
     <artifactId>kbool</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.1</version>
   </dependency>
 </dependencies>
 ...
@@ -88,7 +90,7 @@ repositories {
 }
 
 dependencies {
-  compile('de.xeroli.kbool:kbool:0.5.0')
+  compile('de.xeroli.kbool:kbool:0.5.1')
 }
 ```
 

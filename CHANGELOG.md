@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.5.1
+
+-   added xor as a new boolean operator
+-   fixed some clean-code-issues
 ## 0.5.0
 
 -   cleaner codebase
